@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path"
 
 	"github.com/codegangsta/negroni"
@@ -23,9 +24,29 @@ func main() {
 
 }
 
-type markdownPage struct {
+type Post struct {
 	Title   string
+	Image   bool
 	Content template.HTML
+}
+
+func (p *Post) ReadPostFromFile(name string) error {
+	f, err := ioutil.ReadFile("markdown" + name + ".md")
+	if err != nil {
+		log.Println("file not found")
+		//rw.WriteHeader(404)
+		//fmt.Fprintf(rw, "Not Found.")
+		return err
+	}
+	hasImage := true
+	_, err = os.Open("markdown" + name + ".jpg")
+	if err != nil {
+		hasImage = false
+	}
+	p.Title = name[1:] //Check that name should still have the / removed.
+	p.Content = template.HTML(blackfriday.MarkdownCommon(f))
+	p.Image = hasImage
+	return nil
 }
 
 func renderIndex(rw http.ResponseWriter, r *http.Request) {
@@ -35,7 +56,6 @@ func renderIndex(rw http.ResponseWriter, r *http.Request) {
 	}
 	for _, f := range files {
 		fmt.Fprintf(rw, f.Name(), html.EscapeString(r.URL.Path))
-		//rw.Fprintf(f.Name())
 	}
 }
 func renderPost() func(rw http.ResponseWriter, r *http.Request) {
@@ -52,21 +72,9 @@ func renderPost() func(rw http.ResponseWriter, r *http.Request) {
 			renderIndex(rw, r)
 			return
 		}
-		f, err := ioutil.ReadFile("markdown" + a + ".md")
-		if err != nil {
-			log.Println("file not found")
-			rw.WriteHeader(404)
-			fmt.Fprintf(rw, "Not Found.")
-			return
-		}
-		c := struct {
-			Title   string
-			Content template.HTML
-		}{
-			a[1:],
-			template.HTML(blackfriday.MarkdownCommon(f)),
-		}
-		if err := t.Execute(rw, c); err != nil {
+		p := new(Post)
+		p.ReadPostFromFile(a)
+		if err := t.Execute(rw, p); err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
 	}
