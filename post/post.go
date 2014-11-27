@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"time"
 
 	"github.com/russross/blackfriday"
@@ -29,6 +30,21 @@ type Manager struct {
 //NewManager creates a new Manager.
 func NewManager() *Manager {
 	return &Manager{}
+}
+
+//Len returns the number of Posts in the Manager
+func (pm *Manager) Len() int {
+	return len(pm.SortedPosts)
+}
+
+//Swaps the elements i and j in the SortedPost slice
+func (pm *Manager) Swap(i, j int) {
+	pm.SortedPosts[i], pm.SortedPosts[j] = pm.SortedPosts[j], pm.SortedPosts[i]
+}
+
+//Less returns the earlier of two indices
+func (pm *Manager) Less(i, j int) bool {
+	return pm.SortedPosts[i].Date.Before(pm.SortedPosts[j].Date)
 }
 
 //ImportFolder takes a folder path and loads all present Post files in that folder.
@@ -59,8 +75,8 @@ func (pm *Manager) Add(p Post, name string) error {
 		return fmt.Errorf("ERROR")
 	}
 	pm.postMap[name] = p
-	//add pointer to array
-	//sort array
+	pm.SortedPosts = append(pm.SortedPosts, &p)
+	sort.Sort(pm)
 	return nil
 }
 
