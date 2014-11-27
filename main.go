@@ -7,11 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path"
 
+	"github.com/AWare/awblog/post"
 	"github.com/codegangsta/negroni"
-	"github.com/russross/blackfriday"
 )
 
 func main() {
@@ -21,34 +20,7 @@ func main() {
 	n := negroni.Classic()
 	n.UseHandler(mux)
 	n.Run(":3000")
-
 }
-
-type Post struct {
-	Title   string
-	Image   bool
-	Content template.HTML
-}
-
-func (p *Post) ReadPostFromFile(name string) error {
-	f, err := ioutil.ReadFile("markdown" + name + ".md")
-	if err != nil {
-		log.Println("file not found")
-		//rw.WriteHeader(404)
-		//fmt.Fprintf(rw, "Not Found.")
-		return err
-	}
-	hasImage := true
-	_, err = os.Open("markdown" + name + ".jpg")
-	if err != nil {
-		hasImage = false
-	}
-	p.Title = name[1:] //Check that name should still have the / removed.
-	p.Content = template.HTML(blackfriday.MarkdownCommon(f))
-	p.Image = hasImage
-	return nil
-}
-
 func renderIndex(rw http.ResponseWriter, r *http.Request) {
 	files, err := ioutil.ReadDir("markdown/")
 	if err != nil {
@@ -72,8 +44,10 @@ func renderPost() func(rw http.ResponseWriter, r *http.Request) {
 			renderIndex(rw, r)
 			return
 		}
-		p := new(Post)
-		p.ReadPostFromFile(a)
+		p, err := post.NewPostFromFile("markdown/" + a)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
 		if err := t.Execute(rw, p); err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
