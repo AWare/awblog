@@ -29,7 +29,10 @@ type Manager struct {
 
 //NewManager creates a new Manager.
 func NewManager() *Manager {
-	return &Manager{}
+	return &Manager{
+		postMap:     make(map[string]Post),
+		SortedPosts: make([]*Post, 0),
+	}
 }
 
 //Len returns the number of Posts in the Manager
@@ -71,12 +74,15 @@ func (pm *Manager) ImportFolder(path string) error {
 //Add takes a post and adds it into the Manager map, if it doens't exist
 //Needs to sort the array
 func (pm *Manager) Add(p Post, name string) error {
-	if _, exists := pm.postMap[name]; !exists {
+	fmt.Println("ADD")
+	if _, exists := pm.postMap[name]; exists {
 		return fmt.Errorf("ERROR")
 	}
+	fmt.Println(p)
 	pm.postMap[name] = p
 	pm.SortedPosts = append(pm.SortedPosts, &p)
 	sort.Sort(pm)
+	fmt.Println(pm)
 	return nil
 }
 
